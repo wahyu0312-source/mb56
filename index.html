@@ -115,7 +115,7 @@
         </tr>
       </table>
 
-      <!-- checklist (sama seperti filemu) -->
+      <!-- checklist -->
       <table>
         <tr><th>検査項目</th><th>規格</th><th>判定</th></tr>
         <tr><td>本体取付け寸法</td><td>摺動テスト台取付検査</td><td><span class="judge-static">合</span></td></tr>
@@ -167,7 +167,7 @@
 
   <script>
     /* ===== CONFIG ===== */
-    const APP_NS  = 'mb56v'; // 
+    const APP_NS  = 'mb56v';
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxWxAa_dWQNoUPhWnkw3P22jgeW4vb44Z5ISuUyUWsAAroFzzE6iIVWMIpqqio6E5OgqA/exec';
     const serverPrefix = () => `${APP_NS}::${getSerialPrefix()}`;
     const SERIAL_SCOPE = () => `okuma:serial:${APP_NS}:${getSerialPrefix() || '2835-'}`;
@@ -177,11 +177,29 @@
     function updateStampPreview(id, src){ document.getElementById(id).src = src || ''; }
     function clearAllFields(){
       const form = document.getElementById('inspection-form');
+
+      // --- Simpan 製造No sebelum reset ---
+      const keepPrefix = getSerialPrefix();
+      const keepSuffixRaw = (document.querySelector('input[name="serial_no_suffix"]')?.value || '');
+      const keepSuffixNum = parseInt(keepSuffixRaw.replace(/[^\d]/g,''), 10);
+
+      // --- Reset form ---
       form.reset();
       ['stamp1','stamp2'].forEach(id => document.getElementById(id).src = '');
       form.querySelectorAll('.td-measure-grid input.invalid').forEach(el => el.classList.remove('invalid'));
+
+      // --- Rewire & defaults (JANGAN panggil applyPrefix di sini) ---
       wireDateMirror(); wireEnterNavigationAll(); wireSerialMirror(); wireSoftRequired(); markSoftRequired();
-      setTodayIfEmpty('hakkohiduke'); applyPrefix();
+      setTodayIfEmpty('hakkohiduke');
+
+      // --- Pulihkan 製造No ---
+      const span = document.querySelector('.serial-prefix');
+      if (span && keepPrefix) span.textContent = keepPrefix;
+      if (Number.isFinite(keepSuffixNum)) setSerialSuffix(keepSuffixNum);
+
+      // update print span
+      const out = document.querySelector('[data-serial-print]');
+      if (out) out.textContent = getSerialFull();
     }
 
     /* ===== numeric guards ===== */
@@ -213,6 +231,7 @@
       });
     })();
 
+    /* ===== navigation & mirrors ===== */
     function wireEnterNavigationAll(){
       const form=document.getElementById('inspection-form');
       const getFields=()=>Array.from(form.querySelectorAll('input, select, textarea')).filter(el=>!el.disabled && el.type!=='hidden' && el.offsetParent!==null);
@@ -222,7 +241,6 @@
         el.addEventListener('keydown',e=>{ if(e.isComposing||e.keyCode===229) return; if(e.key==='Enter'){ e.preventDefault(); move(el,e.shiftKey?-1:+1);} });
       });
     }
-
     function wireDateMirror(){
       document.querySelectorAll('input[type="date"]').forEach(inp=>{
         const span=document.querySelector(`.print-text[data-from="${inp.name}"]`); if(!span) return;
@@ -353,8 +371,8 @@
       const blobUrl = doc.output('bloburl'); window.open(blobUrl, '_blank');
     }
 
-    /* ===== Save to NAS (MB66V) ===== */
-    const DB_NAME='form-folder-db', STORE='folders'; let __db; const FOLDER_KEY='Okuma_MB66V';
+    /* ===== Save to NAS (MB-56V) ===== */
+    const DB_NAME='form-folder-db', STORE='folders'; let __db; const FOLDER_KEY='2835-20MB56V';
     function openDB(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open(DB_NAME,1); req.onupgradeneeded=()=>req.result.createObjectStore(STORE); req.onsuccess=()=>{ __db=req.result; resolve(); }; req.onerror=()=>reject(req.error); });}
     async function openDBIfNeeded(){ if(!__db) await openDB(); }
     async function putHandle(key, handle){ await openDBIfNeeded(); return new Promise((res,rej)=>{ const tx=__db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(handle,key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
@@ -462,4 +480,3 @@
   </script>
 </body>
 </html>
-
