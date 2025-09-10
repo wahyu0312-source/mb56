@@ -342,7 +342,8 @@
     function formatSuffix(num){ const s = String(num); return s.length >= PAD_DIGITS ? s : ('0'.repeat(PAD_DIGITS - s.length) + s); }
     function setSerialSuffix(num){ const s = formatSuffix(num); const inp = document.querySelector('input[name="serial_no_suffix"]'); if(!inp) return; inp.value = s; inp.dispatchEvent(new Event('input', { bubbles:true })); markSoftRequired(); }
     function wireSerialMirror(){ const out = document.querySelector('[data-serial-print]'); const inp = document.querySelector('input[name="serial_no_suffix"]'); if (!out) return; const upd = () => { out.textContent = getSerialFull(); }; inp?.addEventListener('input', upd); upd(); }
-    function computePrefixFromZuban(z){ const m = String(z||'').match(/^(\d{4})/); return m ? `${m[1]}-` : ''; }
+    function computePrefixFromZuban(z){ const m = String(z||'').replace(/\D/g,'').match(/^(\d{6})/);
+  return m ? `${m[1]}-` : '';}
     function applyPrefix(){ const z = getZuban(); const pref = computePrefixFromZuban(z); const span = document.querySelector('.serial-prefix'); if(span) span.textContent = pref; }
     function prefixReady(){ return /^\d{4}-$/.test(getSerialPrefix()); }
 
@@ -559,3 +560,4 @@
   </script>
 </body>
 </html>
+
